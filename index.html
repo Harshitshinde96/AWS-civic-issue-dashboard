@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Civic Issue Reporting Dashboard</title>
+    <style>
+      /* Google Fonts */
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+      :root {
+        --bg-canvas: #f4f6f8;
+        --surface: #ffffff;
+        --primary: #1e293b; /* Slate 800 */
+        --primary-light: #334155; /* Slate 700 */
+        --accent: #2563eb; /* Blue 600 */
+        --accent-hover: #1d4ed8;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --error: #ef4444;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow:
+          0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg:
+          0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --radius: 12px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--bg-canvas);
+        color: var(--text-main);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Layout */
+      .dashboard-container {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        min-height: 100vh;
+        gap: 24px;
+        padding: 24px;
+        max-width: 1800px;
+        margin: 0 auto;
+      }
+
+      @media (max-width: 1024px) {
+        .dashboard-container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Control Center Panel */
+      .control-panel {
+        background-color: var(--primary);
+        border-radius: var(--radius);
+        padding: 32px 24px;
+        color: white;
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        height: fit-content;
+        position: sticky;
+        top: 24px;
+      }
+
+      .control-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .control-header p {
+        color: #94a3b8;
+        font-size: 0.875rem;
+      }
+
+      .action-area {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        gap: 8px;
+        width: 100%;
+      }
+
+      .btn-outline {
+        background: transparent;
+        border: 2px solid #475569;
+        color: white;
+      }
+
+      .btn-outline:hover {
+        background: #334155;
+        border-color: #64748b;
+      }
+
+      .btn-primary {
+        background-color: var(--accent);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--accent-hover);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      input[type="file"] {
+        display: none;
+      }
+
+      .preview-area {
+        width: 100%;
+        aspect-ratio: 4/3;
+        background-color: var(--primary-light);
+        border-radius: 8px;
+        border: 2px dashed #475569;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .preview-area img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: none;
+      }
+
+      .preview-placeholder {
+        color: #94a3b8;
+        text-align: center;
+        font-size: 0.875rem;
+        padding: 20px;
+      }
+
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+        display: none;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Analytics Board */
+      .analytics-board {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .master-header {
+        background-color: var(--surface);
+        padding: 24px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+
+      .header-title h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      .sync-status {
+        background-color: #f1f5f9;
+        padding: 8px 16px;
+        border-radius: 999px;
+        font-size: 0.875rem;
+        color: var(--primary-light);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .sync-status .dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--success);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+        }
+        70% {
+          box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+      }
+
+      .categories-grid {
+        display: flex;
+        gap: 20px;
+        overflow-x: auto;
+        padding-bottom: 12px;
+        align-items: flex-start;
+      }
+
+      .category-column {
+        background-color: var(--surface);
+        border-radius: var(--radius);
+        min-width: 320px;
+        width: 320px;
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--shadow-sm);
+        max-height: calc(100vh - 150px);
+      }
+
+      .category-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+        color: var(--primary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        background: var(--surface);
+        border-radius: var(--radius) var(--radius) 0 0;
+        z-index: 10;
+      }
+
+      .badge {
+        background: #f1f5f9;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .cards-container {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        overflow-y: auto;
+      }
+
+      /* Custom Scrollbar */
+      .cards-container::-webkit-scrollbar,
+      .categories-grid::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .cards-container::-webkit-scrollbar-thumb,
+      .categories-grid::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 3px;
+      }
+
+      /* Issue Card */
+      .issue-card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--surface);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .issue-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+
+      .card-img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        background: #e2e8f0;
+      }
+
+      .card-body {
+        padding: 12px;
+      }
+
+      .card-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      .confidence {
+        font-weight: 600;
+        color: var(--accent);
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .tag {
+        background-color: #f1f5f9;
+        color: #475569;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-muted);
+      }
+
+      .empty-state svg {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 12px;
+        opacity: 0.5;
+      }
+
+      /* Toast Notifications */
+      .toast-container {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        z-index: 9999;
+      }
+
+      .toast {
+        background: white;
+        border-radius: 8px;
+        padding: 16px 24px;
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateX(120%);
+        transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        border-left: 4px solid var(--accent);
+      }
+
+      .toast.show {
+        transform: translateX(0);
+      }
+
+      .toast.success {
+        border-left-color: var(--success);
+      }
+      .toast.error {
+        border-left-color: var(--error);
+      }
+
+      .toast-content h4 {
+        margin: 0 0 4px 0;
+        font-size: 0.875rem;
+        color: var(--text-main);
+      }
+      .toast-content p {
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard-container">
+      <!-- Control Center Panel -->
+      <aside class="control-panel">
+        <div class="control-header">
+          <h2>The Reporter</h2>
+          <p>Submit live civic issues from the field.</p>
+        </div>
+
+        <div class="action-area">
+          <input
+            type="file"
+            id="cameraInput"
+            accept="image/*"
+            capture="environment"
+          />
+          <input type="file" id="fileInput" accept="image/*" />
+
+          <button
+            class="btn btn-outline"
+            onclick="document.getElementById('cameraInput').click()"
+          >
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+              ></path>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+              ></path>
+            </svg>
+            Take Live Photo
+          </button>
+          <button
+            class="btn btn-outline"
+            onclick="document.getElementById('fileInput').click()"
+          >
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              ></path>
+            </svg>
+            Upload Image File
+          </button>
+        </div>
+
+        <div class="preview-area" id="previewArea">
+          <div class="preview-placeholder" id="previewPlaceholder">
+            <svg
+              width="32"
+              height="32"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              style="margin-bottom: 8px; opacity: 0.7"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+              ></path>
+            </svg>
+            <br />Image preview will appear here
+          </div>
+          <img id="imagePreview" src="" alt="Selected Preview" />
+        </div>
+
+        <button class="btn btn-primary" id="submitBtn" disabled>
+          <span class="btn-text">Submit Issue Report</span>
+          <div class="spinner" style="display: none"></div>
+        </button>
+      </aside>
+
+      <!-- Analytics Board -->
+      <main class="analytics-board">
+        <header class="master-header">
+          <div class="header-title">
+            <h1>Civic Dashboard</h1>
+          </div>
+          <div class="sync-status">
+            <div class="dot"></div>
+            <span id="syncText"
+              >Next automated refresh in: 120s (Synced: --/-- --:--:--)</span
+            >
+          </div>
+        </header>
+
+        <div class="categories-grid" id="categoriesGrid">
+          <!-- Columns will be injected here via JS -->
+        </div>
+      </main>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+      // Constants
+      const API_UPLOAD_URL =
+        "https://7ibe8yx0a1.execute-api.ap-south-1.amazonaws.com/report";
+      const S3_FEED_URL =
+        "https://civic-issue-tracker-assets.s3.ap-south-1.amazonaws.com/feed.json";
+      const REFRESH_INTERVAL_MS = 120000;
+
+      const CATEGORIES = [
+        "Plot Holes",
+        "Traffic",
+        "Garbage Problem",
+        "Street Light Problem",
+        "Other (Uncategorized)",
+      ];
+
+      // State
+      let selectedImageBase64 = null;
+      let countdownSeconds = REFRESH_INTERVAL_MS / 1000;
+      let lastSyncedTime = null;
+
+      // Elements
+      const cameraInput = document.getElementById("cameraInput");
+      const fileInput = document.getElementById("fileInput");
+      const imagePreview = document.getElementById("imagePreview");
+      const previewPlaceholder = document.getElementById("previewPlaceholder");
+      const submitBtn = document.getElementById("submitBtn");
+      const syncText = document.getElementById("syncText");
+      const categoriesGrid = document.getElementById("categoriesGrid");
+      const toastContainer = document.getElementById("toastContainer");
+
+      // Init
+      document.addEventListener("DOMContentLoaded", () => {
+        initializeCategories();
+        fetchFeed(); // Initial fetch
+        startTimers();
+      });
+
+      // 1. Upload Compression Logic
+      function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            let width = img.width;
+            let height = img.height;
+            const MAX_DIMENSION = 800;
+
+            if (width > height) {
+              if (width > MAX_DIMENSION) {
+                height *= MAX_DIMENSION / width;
+                width = MAX_DIMENSION;
+              }
+            } else {
+              if (height > MAX_DIMENSION) {
+                width *= MAX_DIMENSION / height;
+                height = MAX_DIMENSION;
+              }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Aggressively drop visual quality to 50%
+            selectedImageBase64 = canvas.toDataURL("image/jpeg", 0.5);
+
+            imagePreview.src = selectedImageBase64;
+            imagePreview.style.display = "block";
+            previewPlaceholder.style.display = "none";
+            submitBtn.disabled = false;
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      cameraInput.addEventListener("change", handleFileSelect);
+      fileInput.addEventListener("change", handleFileSelect);
+
+      // Submit Image
+      submitBtn.addEventListener("click", async () => {
+        if (!selectedImageBase64) return;
+
+        // UI State loading
+        submitBtn.disabled = true;
+        submitBtn.querySelector(".btn-text").style.display = "none";
+        submitBtn.querySelector(".spinner").style.display = "block";
+
+        try {
+          // If the URL is just a placeholder, we might get an error.
+          // We'll wrap in try-catch and show success/failure accordingly.
+          const response = await fetch(API_UPLOAD_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: selectedImageBase64 }),
+          });
+
+          if (response.ok) {
+            showToast(
+              "Success",
+              "Issue report submitted successfully!",
+              "success",
+            );
+            resetForm();
+          } else {
+            throw new Error("HTTP Error " + response.status);
+          }
+        } catch (error) {
+          console.error("Upload error:", error);
+          showToast(
+            "Upload Failed",
+            error.message,
+            "error",
+          );
+        } finally {
+          // Reset UI State
+          submitBtn.disabled = false;
+          submitBtn.querySelector(".btn-text").style.display = "block";
+          submitBtn.querySelector(".spinner").style.display = "none";
+        }
+      });
+
+      function resetForm() {
+        selectedImageBase64 = null;
+        imagePreview.src = "";
+        imagePreview.style.display = "none";
+        previewPlaceholder.style.display = "block";
+        submitBtn.disabled = true;
+        cameraInput.value = "";
+        fileInput.value = "";
+      }
+
+      // 2. The 2-Minute S3 Sync Engine
+      function initializeCategories() {
+        categoriesGrid.innerHTML = "";
+        CATEGORIES.forEach((cat) => {
+          const col = document.createElement("div");
+          col.className = "category-column";
+          col.id = `col-${sanitizeId(cat)}`;
+
+          col.innerHTML = `
+                    <div class="category-header">
+                        ${cat}
+                        <span class="badge" id="count-${sanitizeId(cat)}">0</span>
+                    </div>
+                    <div class="cards-container" id="container-${sanitizeId(cat)}">
+                        ${getEmptyState()}
+                    </div>
+                `;
+          categoriesGrid.appendChild(col);
+        });
+      }
+
+      async function fetchFeed() {
+        try {
+          // Fetching from S3_FEED_URL.
+          const response = await fetch(S3_FEED_URL);
+          if (!response.ok) throw new Error("Failed to fetch data");
+          const data = await response.json();
+
+          lastSyncedTime = new Date(data.last_updated || Date.now());
+
+          CATEGORIES.forEach((cat) => {
+            const items =
+              data.categories && data.categories[cat]
+                ? data.categories[cat]
+                : [];
+            renderCategoryItems(cat, items);
+          });
+
+          countdownSeconds = REFRESH_INTERVAL_MS / 1000;
+          updateSyncText();
+          showToast("Synced", "Dashboard data updated.", "success");
+        } catch (error) {
+          console.warn("Sync failed:", error);
+
+          // Fallback / Mock Data display in case URL is unreachable
+          // Ensures user sees how the cards look
+          lastSyncedTime = lastSyncedTime || new Date();
+          countdownSeconds = REFRESH_INTERVAL_MS / 1000;
+          updateSyncText();
+          showToast(
+            "Sync Alert",
+            "Could not fetch latest feed. Loading mock data.",
+            "error",
+          );
+
+          mockFeedData();
+        }
+      }
+
+      function mockFeedData() {
+        const mockItems = {
+          "Plot Holes": [
+            {
+              IssueId: "PH-101",
+              ConfidenceScore: 92.4,
+              ImageUrl:
+                "https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?auto=format&fit=crop&q=80&w=400",
+              RawLabels: ["Pothole", "Asphalt", "Damage"],
+              ReportedAt: new Date().toISOString(),
+            },
+          ],
+          Traffic: [
+            {
+              IssueId: "TR-202",
+              ConfidenceScore: 88.1,
+              ImageUrl:
+                "https://images.unsplash.com/photo-1565022536102-f7645c84354a?auto=format&fit=crop&q=80&w=400",
+              RawLabels: ["Congestion", "Vehicles"],
+              ReportedAt: new Date(Date.now() - 3600000).toISOString(),
+            },
+          ],
+          "Garbage Problem": [],
+          "Street Light Problem": [],
+          "Other (Uncategorized)": [],
+        };
+        CATEGORIES.forEach((cat) =>
+          renderCategoryItems(cat, mockItems[cat] || []),
+        );
+        countdownSeconds = REFRESH_INTERVAL_MS / 1000;
+        updateSyncText();
+      }
+
+      function renderCategoryItems(category, items) {
+        const container = document.getElementById(
+          `container-${sanitizeId(category)}`,
+        );
+        const countBadge = document.getElementById(
+          `count-${sanitizeId(category)}`,
+        );
+
+        countBadge.innerText = items.length;
+
+        if (items.length === 0) {
+          container.innerHTML = getEmptyState();
+          return;
+        }
+
+        container.innerHTML = "";
+        items.forEach((item) => {
+          const tagsHtml = (item.RawLabels || [])
+            .map((label) => `<span class="tag">${label}</span>`)
+            .join("");
+          const dateStr = new Date(item.ReportedAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          const card = document.createElement("div");
+          card.className = "issue-card";
+          card.innerHTML = `
+                    <img class="card-img" src="${item.ImageUrl || ""}" alt="Issue Image" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiNlMmU4ZjAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5NGEzYjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='">
+                    <div class="card-body">
+                        <div class="card-meta">
+                            <span class="confidence">${(item.ConfidenceScore || 0).toFixed(1)}% Match</span>
+                            <span>${dateStr}</span>
+                        </div>
+                        <div class="tags">
+                            ${tagsHtml}
+                        </div>
+                    </div>
+                `;
+          container.appendChild(card);
+        });
+      }
+
+      function getEmptyState() {
+        return `
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p>No active reports listed</p>
+                </div>
+            `;
+      }
+
+      function startTimers() {
+        // Setup the 2 minute fetch interval
+        setInterval(() => {
+          fetchFeed();
+        }, REFRESH_INTERVAL_MS);
+
+        // Setup the 1 second UI countdown
+        setInterval(() => {
+          countdownSeconds--;
+          if (countdownSeconds < 0) countdownSeconds = 0;
+          updateSyncText();
+        }, 1000);
+      }
+
+      function updateSyncText() {
+        const timeStr = lastSyncedTime
+          ? formatDate(lastSyncedTime)
+          : "--/-- --:--:--";
+        syncText.innerText = `Next automated refresh in: ${countdownSeconds}s (Synced: ${timeStr})`;
+      }
+
+      // Utils
+      function sanitizeId(str) {
+        return str.toLowerCase().replace(/[^a-z0-9]/g, "-");
+      }
+
+      function formatDate(date) {
+        const pad = (n) => n.toString().padStart(2, "0");
+        const MM = pad(date.getMonth() + 1);
+        const DD = pad(date.getDate());
+        const HH = pad(date.getHours());
+        const mm = pad(date.getMinutes());
+        const ss = pad(date.getSeconds());
+        return `${MM}/${DD} ${HH}:${mm}:${ss}`;
+      }
+
+      function showToast(title, message, type = "success") {
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+
+        const icon =
+          type === "success"
+            ? '<svg width="24" height="24" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+            : '<svg width="24" height="24" fill="none" stroke="#ef4444" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+
+        toast.innerHTML = `
+                ${icon}
+                <div class="toast-content">
+                    <h4>${title}</h4>
+                    <p>${message}</p>
+                </div>
+            `;
+
+        toastContainer.appendChild(toast);
+
+        // Trigger animation
+        setTimeout(() => toast.classList.add("show"), 10);
+
+        // Remove toast
+        setTimeout(() => {
+          toast.classList.remove("show");
+          setTimeout(() => toast.remove(), 300);
+        }, 3000);
+      }
+    </script>
+  </body>
+</html>
